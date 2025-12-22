@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Film, AlertCircle, RefreshCw, BarChart3, Database, Users, Calendar, Star, Tag, MessageSquare, ChevronDown, ChevronUp, Cpu, Zap, Search, Brain, FileText, ArrowRight } from 'lucide-react';
+import { Film, AlertCircle, RefreshCw, BarChart3, Database, Users, Calendar, Star, Tag, MessageSquare, ChevronDown, ChevronUp, Cpu, Zap, Search, Brain, FileText, ArrowRight, Github } from 'lucide-react';
 import { ChatMessage } from './components/ChatMessage';
 import { ChatInput } from './components/ChatInput';
 import { TypingIndicator } from './components/TypingIndicator';
@@ -151,6 +151,17 @@ function App() {
             </div>
 
             <div className="flex items-center gap-1 sm:gap-3">
+              {/* GitHub Link */}
+              <a
+                href="https://github.com/gstorni/movie-rag-chat"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-1.5 sm:p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-colors"
+                title="View on GitHub"
+              >
+                <Github className="w-4 h-4 sm:w-5 sm:h-5" />
+              </a>
+
               {/* Analytics Button */}
               <button
                 onClick={() => setShowAnalytics(true)}
