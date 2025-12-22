@@ -49,26 +49,17 @@ rag-experiment/
 
 ## Setup Instructions
 
-### 1. Database Setup (on VM)
+### 1. Database Setup
 
-SSH into the VM and run the migrations:
+You'll need PostgreSQL with the pgvector extension installed.
 
 ```bash
 # Enable pgvector extension
-sshpass -p Render1575 ssh supabase "sudo docker exec -i supabase-db psql -U postgres -d postgres -c 'CREATE EXTENSION IF NOT EXISTS vector;'"
-
-# Copy migrations
-cat rag-experiment/backend/migrations/001_create_schema.sql | sshpass -p Render1575 ssh supabase "cat > VFX-Workflow/rag-experiment/backend/migrations/001_create_schema.sql"
-
-cat rag-experiment/backend/migrations/002_insert_mock_data.sql | sshpass -p Render1575 ssh supabase "cat > VFX-Workflow/rag-experiment/backend/migrations/002_insert_mock_data.sql"
+psql -U postgres -d postgres -c 'CREATE EXTENSION IF NOT EXISTS vector;'
 
 # Run migrations
-sshpass -p Render1575 ssh supabase "sudo docker exec -i supabase-db psql -U postgres -d postgres < VFX-Workflow/rag-experiment/backend/migrations/001_create_schema.sql"
-
-sshpass -p Render1575 ssh supabase "sudo docker exec -i supabase-db psql -U postgres -d postgres < VFX-Workflow/rag-experiment/backend/migrations/002_insert_mock_data.sql"
-
-# Restart PostgREST
-sshpass -p Render1575 ssh supabase "sudo docker restart supabase-rest"
+psql -U postgres -d postgres < backend/migrations/001_create_schema.sql
+psql -U postgres -d postgres < backend/migrations/002_insert_mock_data.sql
 ```
 
 ### 2. Backend Setup
