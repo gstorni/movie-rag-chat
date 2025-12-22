@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Film, AlertCircle, RefreshCw, BarChart3, Database, Users, Calendar, Star, Tag, MessageSquare, ChevronDown, ChevronUp, Cpu, Zap, Search, Brain, FileText, ArrowRight, Github } from 'lucide-react';
+import { Film, AlertCircle, RefreshCw, BarChart3, Database, Users, Calendar, Star, Tag, MessageSquare, ChevronDown, ChevronUp, Cpu, Zap, Search, Brain, FileText, ArrowRight, Github, User } from 'lucide-react';
 import { ChatMessage } from './components/ChatMessage';
 import { ChatInput } from './components/ChatInput';
 import { TypingIndicator } from './components/TypingIndicator';
@@ -27,6 +27,7 @@ function App() {
     unique_directors: number;
     unique_genres: number;
     unique_reviewers: number;
+    unique_actors: number;
   } | null>(null);
   const [apiStatus, setApiStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const [searchPhase, setSearchPhase] = useState<SearchPhase>('idle');
@@ -235,6 +236,11 @@ function App() {
                 <span className="hidden sm:inline">directors</span>
               </div>
               <div className="flex items-center gap-1 text-gray-400">
+                <User className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-pink-400" />
+                <span className="text-pink-400 font-medium">{stats.unique_actors}</span>
+                <span className="hidden sm:inline">actors</span>
+              </div>
+              <div className="flex items-center gap-1 text-gray-400">
                 <MessageSquare className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-cyan-400" />
                 <span className="text-cyan-400 font-medium">{stats.unique_reviewers}</span>
                 <span className="hidden sm:inline">reviewers</span>
@@ -395,7 +401,7 @@ function App() {
                         <tbody className="text-gray-400">
                           <tr className="border-b border-gray-800">
                             <td className="py-2 pr-4 text-blue-400">rag_movies</td>
-                            <td className="py-2 pr-4">id, title, plot, director, genre, year, rating</td>
+                            <td className="py-2 pr-4">id, title, plot, director, genre, year, rating, <span className="text-pink-400">actors[]</span></td>
                             <td className="py-2 text-purple-400">plot_embedding <span className="text-gray-600">(1536 floats)</span></td>
                           </tr>
                           <tr>
