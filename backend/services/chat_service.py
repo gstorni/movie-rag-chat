@@ -14,6 +14,7 @@ from services.sql_search_service import (
     get_movies_by_year,
     get_movies_by_director,
     get_movies_by_genre,
+    get_movies_by_actor,
     get_top_rated_movies,
     get_statistics,
     search_movies_keyword
@@ -36,13 +37,15 @@ def analyze_query_intent(query: str) -> tuple[Dict[str, Any], Dict[str, int]]:
     """
     system_prompt = """You are a query analyzer for a movie database. Analyze the user's query and return a JSON object with:
     - "intent": one of ["semantic_search", "structured_query", "hybrid", "general_question"]
-    - "filters": object with any extracted filters like {"year": 1994, "director": "name", "genre": "action", "min_rating": 8.0}
+    - "filters": object with any extracted filters like {"year": 1994, "director": "name", "genre": "action", "actor": "name", "min_rating": 8.0}
     - "keywords": array of important keywords for search
     - "needs_statistics": boolean if they're asking for stats/counts
 
     Examples:
     - "movies about space travel" -> {"intent": "semantic_search", "filters": {}, "keywords": ["space", "travel"]}
     - "Nolan movies" -> {"intent": "structured_query", "filters": {"director": "Nolan"}, "keywords": ["Nolan"]}
+    - "movies with Tom Hanks" -> {"intent": "structured_query", "filters": {"actor": "Tom Hanks"}, "keywords": ["Tom Hanks"]}
+    - "Leonardo DiCaprio sci-fi movies" -> {"intent": "hybrid", "filters": {"actor": "Leonardo DiCaprio", "genre": "sci-fi"}, "keywords": ["DiCaprio", "sci-fi"]}
     - "best sci-fi movies from the 90s" -> {"intent": "hybrid", "filters": {"genre": "sci-fi", "year_range": [1990, 1999]}, "keywords": ["sci-fi", "90s"]}
     - "how many movies are in the database" -> {"intent": "general_question", "filters": {}, "keywords": [], "needs_statistics": true}
 
@@ -102,6 +105,8 @@ def gather_context(query: str, intent_analysis: Dict[str, Any]) -> Dict[str, Any
             context["sql_results"].extend(get_movies_by_year(filters["year"]))
         if "genre" in filters:
             context["sql_results"].extend(get_movies_by_genre(filters["genre"]))
+        if "actor" in filters:
+            context["sql_results"].extend(get_movies_by_actor(filters["actor"]))
         if "min_rating" in filters:
             context["sql_results"].extend(get_top_rated_movies(10))
 
@@ -144,8 +149,11 @@ def format_context_for_llm(context: Dict[str, Any]) -> str:
         parts.append("=== SEMANTICALLY SIMILAR MOVIES ===")
         for movie in context["vector_results"]["movies"]:
             similarity = movie.get('similarity', 0) * 100
+            actors = movie.get('actors', [])
+            actors_str = ", ".join(actors[:3]) if actors else "Unknown cast"
             parts.append(f"- {movie['title']} ({movie['year']}) by {movie['director']}")
             parts.append(f"  Genre: {movie['genre']} | Rating: {movie['rating']}/10 | Similarity: {similarity:.1f}%")
+            parts.append(f"  Cast: {actors_str}")
             parts.append(f"  Plot: {movie['plot'][:200]}...")
 
     if context["vector_results"]["reviews"]:
@@ -158,7 +166,10 @@ def format_context_for_llm(context: Dict[str, Any]) -> str:
     if context["sql_results"]:
         parts.append("\n=== MATCHING MOVIES FROM DATABASE ===")
         for movie in context["sql_results"]:
+            actors = movie.get('actors', [])
+            actors_str = ", ".join(actors[:3]) if actors else "Unknown cast"
             parts.append(f"- {movie['title']} ({movie['year']}) by {movie['director']}")
+            parts.append(f"  Cast: {actors_str}")
             parts.append(f"  Genre: {movie['genre']} | Rating: {movie['rating']}/10 | Runtime: {movie['runtime_minutes']} min")
 
     # Statistics

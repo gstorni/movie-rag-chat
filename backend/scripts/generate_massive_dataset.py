@@ -155,6 +155,49 @@ TWISTS = [
     "they were being tested the whole time"
 ]
 
+# Extensive list of actors for variety
+ACTORS = [
+    # Hollywood A-List
+    "Tom Hanks", "Leonardo DiCaprio", "Brad Pitt", "Denzel Washington", "Morgan Freeman",
+    "Robert De Niro", "Al Pacino", "Meryl Streep", "Cate Blanchett", "Nicole Kidman",
+    "Sandra Bullock", "Julia Roberts", "Angelina Jolie", "Johnny Depp", "Will Smith",
+    "George Clooney", "Matt Damon", "Christian Bale", "Joaquin Phoenix", "Tom Cruise",
+    "Scarlett Johansson", "Emma Stone", "Jennifer Lawrence", "Natalie Portman", "Anne Hathaway",
+    "Kate Winslet", "Amy Adams", "Viola Davis", "Margot Robbie", "Charlize Theron",
+    "Samuel L. Jackson", "Michael B. Jordan", "Dwayne Johnson", "Ryan Gosling", "Jake Gyllenhaal",
+    "Oscar Isaac", "Adam Driver", "Timothée Chalamet", "Florence Pugh", "Zendaya",
+    # Action Stars
+    "Keanu Reeves", "Jason Statham", "Vin Diesel", "Michelle Rodriguez", "Gal Gadot",
+    "Chris Hemsworth", "Chris Evans", "Chris Pratt", "Robert Downey Jr.", "Mark Ruffalo",
+    "Tom Holland", "Brie Larson", "Simu Liu", "John Boyega", "Idris Elba",
+    # Classic Hollywood
+    "Marlon Brando", "James Dean", "Humphrey Bogart", "Audrey Hepburn", "Marilyn Monroe",
+    "Gregory Peck", "Katharine Hepburn", "Ingrid Bergman", "Cary Grant", "Gene Kelly",
+    "Elizabeth Taylor", "Paul Newman", "Robert Redford", "Dustin Hoffman", "Jack Nicholson",
+    "Harrison Ford", "Sigourney Weaver", "Jodie Foster", "Anthony Hopkins", "Gary Oldman",
+    # British Actors
+    "Daniel Craig", "Benedict Cumberbatch", "Tom Hiddleston", "Eddie Redmayne", "Jude Law",
+    "Emily Blunt", "Keira Knightley", "Emma Watson", "Tilda Swinton", "Helen Mirren",
+    "Judi Dench", "Ian McKellen", "Patrick Stewart", "Ralph Fiennes", "Colin Firth",
+    # International Stars
+    "Penélope Cruz", "Javier Bardem", "Antonio Banderas", "Gael García Bernal", "Diego Luna",
+    "Lupita Nyong'o", "Chiwetel Ejiofor", "Dev Patel", "Priyanka Chopra", "Deepika Padukone",
+    "Tony Leung", "Gong Li", "Zhang Ziyi", "Jet Li", "Jackie Chan",
+    "Song Kang-ho", "Bae Doona", "Park So-dam", "Choi Min-sik", "Lee Byung-hun",
+    "Ken Watanabe", "Rinko Kikuchi", "Tadanobu Asano", "Toshiro Mifune", "Takeshi Kitano",
+    "Mads Mikkelsen", "Noomi Rapace", "Alicia Vikander", "Alexander Skarsgård", "Rebecca Ferguson",
+    # Rising Stars
+    "Anya Taylor-Joy", "Sydney Sweeney", "Austin Butler", "Barry Keoghan", "Paul Mescal",
+    "Jenna Ortega", "Xochitl Gomez", "Dominique Thorne", "Kathryn Newton", "Maitreyi Ramakrishnan",
+    # Comedy Stars
+    "Steve Carell", "Will Ferrell", "Adam Sandler", "Seth Rogen", "Jonah Hill",
+    "Melissa McCarthy", "Tiffany Haddish", "Awkwafina", "Ken Jeong", "Kevin Hart",
+    # Character Actors
+    "Willem Dafoe", "John Turturro", "Steve Buscemi", "J.K. Simmons", "Walton Goggins",
+    "Michael Shannon", "Ben Mendelsohn", "John Hawkes", "Sam Rockwell", "Richard Jenkins",
+    "Frances McDormand", "Allison Janney", "Octavia Spencer", "Laurie Metcalf", "Margo Martindale",
+]
+
 def generate_plot(genre: str) -> str:
     """Generate a unique plot based on genre."""
     protagonist = random.choice(PROTAGONISTS)
@@ -229,6 +272,11 @@ def generate_title() -> str:
 
     return " ".join(title_parts)
 
+def generate_actors() -> list:
+    """Generate a random cast of 2-6 actors."""
+    num_actors = random.randint(2, 6)
+    return random.sample(ACTORS, min(num_actors, len(ACTORS)))
+
 def generate_movie() -> dict:
     """Generate a single movie entry."""
     genre = random.choice(GENRES)
@@ -237,6 +285,9 @@ def generate_movie() -> dict:
 
     # Generate unique plot
     plot = generate_plot(genre)
+
+    # Generate cast
+    actors = generate_actors()
 
     # Rating weighted toward 6-8 range (more realistic distribution)
     rating = round(random.triangular(5.0, 10.0, 7.2), 1)
@@ -256,14 +307,15 @@ def generate_movie() -> dict:
         "genre": genre,
         "plot": plot,
         "rating": rating,
-        "runtime_minutes": runtime
+        "runtime_minutes": runtime,
+        "actors": actors
     }
 
 def batch_insert_movies(movies: list, batch_size: int = 500):
     """Insert movies in large batches for efficiency."""
     sql = """
-        INSERT INTO rag_movies (title, year, director, genre, plot, rating, runtime_minutes)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO rag_movies (title, year, director, genre, plot, rating, runtime_minutes, actors)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT DO NOTHING
     """
 
@@ -281,7 +333,8 @@ def batch_insert_movies(movies: list, batch_size: int = 500):
                     movie["genre"],
                     movie["plot"],
                     movie["rating"],
-                    movie["runtime_minutes"]
+                    movie["runtime_minutes"],
+                    movie.get("actors", [])
                 ))
             inserted += len(batch)
             print(f"  Inserted {inserted}/{total} movies...")

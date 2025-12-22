@@ -12,7 +12,7 @@ from utils.database import execute_query
 def get_movies_by_year(year: int) -> List[Dict[str, Any]]:
     """Get all movies from a specific year."""
     sql = """
-        SELECT id, title, year, director, genre, plot, rating, runtime_minutes
+        SELECT id, title, year, director, genre, plot, rating, runtime_minutes, actors
         FROM rag_movies
         WHERE year = %s
         ORDER BY rating DESC
@@ -24,7 +24,7 @@ def get_movies_by_year(year: int) -> List[Dict[str, Any]]:
 def get_movies_by_director(director: str) -> List[Dict[str, Any]]:
     """Get all movies by a specific director (case-insensitive partial match)."""
     sql = """
-        SELECT id, title, year, director, genre, plot, rating, runtime_minutes
+        SELECT id, title, year, director, genre, plot, rating, runtime_minutes, actors
         FROM rag_movies
         WHERE LOWER(director) LIKE LOWER(%s)
         ORDER BY year DESC
@@ -36,7 +36,7 @@ def get_movies_by_director(director: str) -> List[Dict[str, Any]]:
 def get_movies_by_genre(genre: str) -> List[Dict[str, Any]]:
     """Get all movies of a specific genre (case-insensitive partial match)."""
     sql = """
-        SELECT id, title, year, director, genre, plot, rating, runtime_minutes
+        SELECT id, title, year, director, genre, plot, rating, runtime_minutes, actors
         FROM rag_movies
         WHERE LOWER(genre) LIKE LOWER(%s)
         ORDER BY rating DESC
@@ -45,10 +45,25 @@ def get_movies_by_genre(genre: str) -> List[Dict[str, Any]]:
     return [dict(row) for row in results] if results else []
 
 
+def get_movies_by_actor(actor: str) -> List[Dict[str, Any]]:
+    """Get all movies featuring a specific actor (case-insensitive partial match)."""
+    sql = """
+        SELECT id, title, year, director, genre, plot, rating, runtime_minutes, actors
+        FROM rag_movies
+        WHERE EXISTS (
+            SELECT 1 FROM unnest(actors) AS a
+            WHERE LOWER(a) LIKE LOWER(%s)
+        )
+        ORDER BY rating DESC
+    """
+    results = execute_query(sql, (f'%{actor}%',))
+    return [dict(row) for row in results] if results else []
+
+
 def get_top_rated_movies(limit: int = 10) -> List[Dict[str, Any]]:
     """Get the highest rated movies."""
     sql = """
-        SELECT id, title, year, director, genre, plot, rating, runtime_minutes
+        SELECT id, title, year, director, genre, plot, rating, runtime_minutes, actors
         FROM rag_movies
         ORDER BY rating DESC
         LIMIT %s
@@ -60,7 +75,7 @@ def get_top_rated_movies(limit: int = 10) -> List[Dict[str, Any]]:
 def get_movies_by_rating_range(min_rating: float, max_rating: float = 10.0) -> List[Dict[str, Any]]:
     """Get movies within a rating range."""
     sql = """
-        SELECT id, title, year, director, genre, plot, rating, runtime_minutes
+        SELECT id, title, year, director, genre, plot, rating, runtime_minutes, actors
         FROM rag_movies
         WHERE rating >= %s AND rating <= %s
         ORDER BY rating DESC
@@ -72,7 +87,7 @@ def get_movies_by_rating_range(min_rating: float, max_rating: float = 10.0) -> L
 def get_movie_with_reviews(movie_id: int) -> Optional[Dict[str, Any]]:
     """Get a movie with all its reviews."""
     movie_sql = """
-        SELECT id, title, year, director, genre, plot, rating, runtime_minutes
+        SELECT id, title, year, director, genre, plot, rating, runtime_minutes, actors
         FROM rag_movies
         WHERE id = %s
     """
@@ -97,7 +112,7 @@ def get_movie_with_reviews(movie_id: int) -> Optional[Dict[str, Any]]:
 def search_movies_keyword(keyword: str) -> List[Dict[str, Any]]:
     """Search movies by keyword in title or plot."""
     sql = """
-        SELECT id, title, year, director, genre, plot, rating, runtime_minutes
+        SELECT id, title, year, director, genre, plot, rating, runtime_minutes, actors
         FROM rag_movies
         WHERE LOWER(title) LIKE LOWER(%s) OR LOWER(plot) LIKE LOWER(%s)
         ORDER BY rating DESC
@@ -117,7 +132,8 @@ def get_statistics() -> Dict[str, Any]:
             MAX(year) as latest_year,
             COUNT(DISTINCT director) as unique_directors,
             COUNT(DISTINCT genre) as unique_genres,
-            (SELECT COUNT(DISTINCT reviewer_name) FROM rag_reviews) as unique_reviewers
+            (SELECT COUNT(DISTINCT reviewer_name) FROM rag_reviews) as unique_reviewers,
+            (SELECT COUNT(DISTINCT a) FROM rag_movies, unnest(actors) AS a) as unique_actors
         FROM rag_movies
     """
     results = execute_query(sql)

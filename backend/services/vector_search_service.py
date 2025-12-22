@@ -38,6 +38,7 @@ def search_movies_by_similarity(query: str, limit: int = 5) -> List[Dict[str, An
             m.plot,
             m.rating,
             m.runtime_minutes,
+            m.actors,
             1 - (m.plot_embedding <=> %s::vector) as similarity
         FROM rag_movies m
         WHERE m.plot_embedding IS NOT NULL
