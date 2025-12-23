@@ -12,18 +12,20 @@ load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
 class Config:
     """Application configuration loaded from environment variables."""
 
-    # Database - Use Docker network IP for supabase-db container
-    _pg_host = os.getenv('RAG_POSTGRES_HOST') or os.getenv('POSTGRES_HOST', '172.19.0.8')
-    POSTGRES_HOST: str = '172.19.0.8' if _pg_host in ('db', '192.168.10.158') else _pg_host
+    # Database - Load from environment variables only
+    POSTGRES_HOST: str = os.getenv('POSTGRES_HOST', '')
     POSTGRES_PORT: int = int(os.getenv('POSTGRES_PORT', '5432'))
-    POSTGRES_DB: str = os.getenv('POSTGRES_DB', 'postgres')
-    POSTGRES_USER: str = os.getenv('POSTGRES_USER', 'postgres')
-    POSTGRES_PASSWORD: str = os.getenv('POSTGRES_PASSWORD', 'pyzsMzRH20kil9H3Qv7TieinQgEodWH6')
+    POSTGRES_DB: str = os.getenv('POSTGRES_DB', '')
+    POSTGRES_USER: str = os.getenv('POSTGRES_USER', '')
+    POSTGRES_PASSWORD: str = os.getenv('POSTGRES_PASSWORD', '')
 
     # OpenAI
     OPENAI_API_KEY: str = os.getenv('VITE_OPENAI_API_KEY', '')
     EMBEDDING_MODEL: str = 'text-embedding-3-small'
     CHAT_MODEL: str = 'gpt-4o-mini'
+
+    # TMDB
+    TMDB_API_KEY: str = os.getenv('TMDB_API_KEY', '')
 
     # Vector Search
     EMBEDDING_DIMENSIONS: int = 1536
