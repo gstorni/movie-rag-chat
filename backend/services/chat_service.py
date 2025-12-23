@@ -24,13 +24,14 @@ from services.sql_search_service import (
 client = OpenAI(api_key=config.OPENAI_API_KEY)
 
 
-def analyze_query_intent(query: str) -> tuple[Dict[str, Any], Dict[str, int]]:
+def analyze_query_intent(query: str, conversation_history: List[Dict[str, str]] = None) -> tuple[Dict[str, Any], Dict[str, int]]:
     """
     Use LLM to analyze the user's query intent.
     Determines whether to use vector search, SQL search, or both.
 
     Args:
         query: User's natural language query
+        conversation_history: Previous conversation for context
 
     Returns:
         Tuple of (intent dict, token usage dict)
@@ -51,16 +52,24 @@ def analyze_query_intent(query: str) -> tuple[Dict[str, Any], Dict[str, int]]:
     - "best sci-fi movies from the 90s" -> {"intent": "hybrid", "filters": {"genre": "sci-fi", "year_range": [1990, 1999]}, "keywords": ["sci-fi", "90s"]}
     - "how many movies are in the database" -> {"intent": "hybrid", "filters": {}, "keywords": [], "needs_statistics": true}
 
-    IMPORTANT: Always use "hybrid", "semantic_search", or "structured_query" - NEVER use "general_question".
+    IMPORTANT:
+    - Always use "hybrid", "semantic_search", or "structured_query" - NEVER use "general_question"
+    - If the user refers to a movie from previous conversation (like "tell me the plot" or "the director"), extract the movie title from conversation history and add it to filters
+    - Use conversation context to understand pronouns like "it", "that movie", etc.
 
     Return ONLY valid JSON, no markdown or explanation."""
 
+    messages = [{"role": "system", "content": system_prompt}]
+
+    # Add conversation history for context
+    if conversation_history:
+        messages.extend(conversation_history[-4:])  # Last 4 messages for context
+
+    messages.append({"role": "user", "content": query})
+
     response = client.chat.completions.create(
         model=config.CHAT_MODEL,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": query}
-        ],
+        messages=messages,
         temperature=0
     )
 
@@ -88,10 +97,20 @@ def gather_context(query: str, intent_analysis: Dict[str, Any]) -> Dict[str, Any
     Returns:
         Dict with all gathered context
     """
+    # Track cache hits before searches
+    from services.redis_cache import redis_client, REDIS_AVAILABLE
+    initial_hits = 0
+    if REDIS_AVAILABLE:
+        try:
+            initial_hits = int(redis_client.get("cache:stats:hits") or 0)
+        except:
+            pass
+
     context = {
         "vector_results": {"movies": [], "reviews": []},
         "sql_results": [],
-        "statistics": None
+        "statistics": None,
+        "redis_cache_hit": False
     }
 
     intent = intent_analysis.get("intent", "hybrid")
@@ -136,6 +155,14 @@ def gather_context(query: str, intent_analysis: Dict[str, Any]) -> Dict[str, Any
             seen_ids.add(movie["id"])
             unique_results.append(movie)
     context["sql_results"] = unique_results[:10]  # Limit to 10
+
+    # Check if cache was hit during this request
+    if REDIS_AVAILABLE:
+        try:
+            final_hits = int(redis_client.get("cache:stats:hits") or 0)
+            context["redis_cache_hit"] = final_hits > initial_hits
+        except:
+            pass
 
     return context
 
@@ -263,8 +290,8 @@ def process_chat_message(query: str, conversation_history: List[Dict[str, str]] 
     Returns:
         Dict with response and metadata
     """
-    # Step 1: Analyze query intent
-    intent_analysis, intent_tokens = analyze_query_intent(query)
+    # Step 1: Analyze query intent (with conversation history for context)
+    intent_analysis, intent_tokens = analyze_query_intent(query, conversation_history)
 
     # Step 2: Gather relevant context
     context = gather_context(query, intent_analysis)
@@ -292,7 +319,8 @@ def process_chat_message(query: str, conversation_history: List[Dict[str, str]] 
         "sources": {
             "vector_matches": len(context["vector_results"]["movies"]) + len(context["vector_results"]["reviews"]),
             "sql_matches": len(context["sql_results"]),
-            "used_statistics": context["statistics"] is not None
+            "used_statistics": context["statistics"] is not None,
+            "redis_cache_hit": context.get("redis_cache_hit", False)
         },
         "token_usage": total_tokens
     }

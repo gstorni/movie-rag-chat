@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Database, Brain, Cpu, Search, Zap, CheckCircle2, Loader2, Coins } from 'lucide-react';
+import { Database, Brain, Cpu, Search, Zap, CheckCircle2, Loader2, Coins, Server } from 'lucide-react';
 import { TokenUsage } from '../services/chatService';
 
 interface SearchStep {
@@ -19,6 +19,7 @@ interface SearchVisualizationProps {
     vector_matches: number;
     sql_matches: number;
     used_statistics: boolean;
+    redis_cache_hit?: boolean;
   };
   intent?: string;
   tokenUsage?: {
@@ -219,6 +220,18 @@ export function SearchVisualization({ isSearching, currentPhase, sources, intent
       {currentPhase === 'complete' && sources && (
         <div className="mt-2 sm:mt-4 pt-2 sm:pt-4 border-t border-gray-700/50 hidden sm:block">
           <div className="flex justify-center gap-3 sm:gap-6 flex-wrap">
+            {sources.redis_cache_hit && (
+              <div className="flex items-center gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-red-500/10 rounded-lg border border-red-500/30">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-red-500/20 rounded-full flex items-center justify-center">
+                  <Server className="w-3 h-3 sm:w-4 sm:h-4 text-red-400" />
+                </div>
+                <div>
+                  <div className="text-xs sm:text-sm font-medium text-red-400">Redis Cache</div>
+                  <div className="text-[10px] sm:text-xs text-gray-500">Cache hit ⚡</div>
+                </div>
+              </div>
+            )}
+
             {sources.vector_matches > 0 && (
               <div className="flex items-center gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-blue-500/10 rounded-lg border border-blue-500/30">
                 <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-500/20 rounded-full flex items-center justify-center">

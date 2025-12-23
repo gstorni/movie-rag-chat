@@ -20,6 +20,7 @@ export interface ChatResponse {
     vector_matches: number;
     sql_matches: number;
     used_statistics: boolean;
+    redis_cache_hit?: boolean;
   };
   token_usage?: {
     intent_analysis: TokenUsage;

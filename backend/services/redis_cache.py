@@ -54,6 +54,25 @@ def cache_get(key: str) -> Optional[Any]:
         return None
 
 
+def cache_get_with_status(key: str) -> tuple[Optional[Any], bool]:
+    """Get cached value and return (value, was_hit) tuple."""
+    if not REDIS_AVAILABLE:
+        return None, False
+
+    try:
+        cached = redis_client.get(key)
+        if cached:
+            # Increment hit counter
+            redis_client.incr("cache:stats:hits")
+            return json.loads(cached), True
+        else:
+            # Increment miss counter
+            redis_client.incr("cache:stats:misses")
+            return None, False
+    except Exception:
+        return None, False
+
+
 def cache_set(key: str, value: Any, ttl: int = 300):
     """Set cached value with TTL (default 5 minutes)."""
     if not REDIS_AVAILABLE:

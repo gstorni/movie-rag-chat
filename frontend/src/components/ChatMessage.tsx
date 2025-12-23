@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Bot, Database, Search, BarChart3 } from 'lucide-react';
+import { User, Bot, Database, Search, BarChart3, Server } from 'lucide-react';
 
 interface ChatMessageProps {
   role: 'user' | 'assistant';
@@ -8,6 +8,7 @@ interface ChatMessageProps {
     vector_matches: number;
     sql_matches: number;
     used_statistics: boolean;
+    redis_cache_hit?: boolean;
   };
   intent?: string;
 }
@@ -45,6 +46,12 @@ export function ChatMessage({ role, content, sources, intent }: ChatMessageProps
         {/* Source indicators for assistant messages */}
         {!isUser && sources && (
           <div className="flex flex-wrap gap-2 mt-2">
+            {sources.redis_cache_hit && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-900/50 text-red-300 text-xs rounded-full">
+                <Server className="w-3 h-3" />
+                cache hit ⚡
+              </span>
+            )}
             {sources.vector_matches > 0 && (
               <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-900/50 text-purple-300 text-xs rounded-full">
                 <Search className="w-3 h-3" />
