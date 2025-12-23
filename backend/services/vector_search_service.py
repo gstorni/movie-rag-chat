@@ -1,6 +1,6 @@
 """
 Vector search service for semantic similarity queries.
-Uses pgvector for efficient vector similarity search.
+Uses pgvector for efficient vector similarity search with Redis caching.
 """
 
 from typing import List, Dict, Any
@@ -9,11 +9,13 @@ sys.path.append('..')
 from config import config
 from utils.database import execute_query
 from services.embedding_service import create_search_embedding
+from services.redis_cache import get_cached_search, cache_search_results
 
 
 def search_movies_by_similarity(query: str, limit: int = 5) -> List[Dict[str, Any]]:
     """
     Search movies using vector similarity on plot embeddings.
+    Results are cached in Redis for 5 minutes.
 
     Args:
         query: Natural language search query
@@ -22,6 +24,12 @@ def search_movies_by_similarity(query: str, limit: int = 5) -> List[Dict[str, An
     Returns:
         List of movies with similarity scores
     """
+    # Check cache first
+    cache_key = f"{query}:{limit}"
+    cached = get_cached_search(cache_key)
+    if cached is not None:
+        return cached
+
     # Generate embedding for the query
     query_embedding = create_search_embedding(query)
 
@@ -47,7 +55,12 @@ def search_movies_by_similarity(query: str, limit: int = 5) -> List[Dict[str, An
     """
 
     results = execute_query(sql, (embedding_str, embedding_str, limit))
-    return [dict(row) for row in results] if results else []
+    result_list = [dict(row) for row in results] if results else []
+
+    # Cache the results
+    cache_search_results(cache_key, result_list, ttl=300)  # 5 minutes
+
+    return result_list
 
 
 def search_reviews_by_similarity(query: str, limit: int = 5) -> List[Dict[str, Any]]:

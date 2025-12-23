@@ -1,6 +1,7 @@
 """
 Fetch real movie data from TMDB API and update database.
-Conservative approach: 500 movies, 5 requests/second (safe rate).
+Conservative approach: 500 movies, 10 requests/second (TMDB allows ~40/sec).
+Estimated time: ~1.5-2 minutes for 500 movies.
 """
 
 import sys
@@ -16,7 +17,8 @@ from config import config
 
 # TMDB API Configuration
 TMDB_BASE_URL = "https://api.themoviedb.org/3"
-REQUESTS_PER_SECOND = 5  # Conservative rate (TMDB allows up to 50/sec)
+# TMDB allows ~40 req/sec, we use 10 req/sec to be respectful
+REQUESTS_PER_SECOND = 10  # Conservative rate (TMDB allows ~40/sec)
 DELAY_BETWEEN_REQUESTS = 1.0 / REQUESTS_PER_SECOND
 
 # Popular movie IDs to start with (these are guaranteed to exist and have good data)
@@ -150,13 +152,6 @@ def insert_movie(cursor, movie: Dict) -> bool:
         cursor.execute("""
             INSERT INTO rag_movies (title, year, director, genre, plot, rating, runtime_minutes, actors)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (title, year) DO UPDATE SET
-                director = EXCLUDED.director,
-                genre = EXCLUDED.genre,
-                plot = EXCLUDED.plot,
-                rating = EXCLUDED.rating,
-                runtime_minutes = EXCLUDED.runtime_minutes,
-                actors = EXCLUDED.actors
         """, (
             movie['title'],
             movie['year'],
@@ -185,8 +180,9 @@ def main():
         return
 
     print(f"\n✓ TMDB API Key: {config.TMDB_API_KEY[:10]}...")
-    print(f"✓ Rate limit: {REQUESTS_PER_SECOND} requests/second (conservative)")
-    print(f"✓ Target: 500 movies")
+    print(f"✓ Rate limit: {REQUESTS_PER_SECOND} requests/second (TMDB allows ~40/sec)")
+    print(f"✓ Target: 10 movies (TEST MODE)")
+    print(f"✓ Estimated time: ~10 seconds")
 
     # Gather movie IDs
     print("\n" + "-" * 70)
@@ -195,24 +191,12 @@ def main():
 
     movie_ids = []
 
-    # Add popular IDs
-    movie_ids.extend(POPULAR_MOVIE_IDS)
-    print(f"✓ Added {len(POPULAR_MOVIE_IDS)} popular movie IDs")
+    # Add just 10 popular movie IDs for testing
+    movie_ids.extend(POPULAR_MOVIE_IDS[:10])
+    print(f"✓ Added {len(movie_ids)} popular movie IDs (test mode)")
 
-    # Discover more movies from TMDB
-    pages_needed = (500 - len(movie_ids)) // 20 + 1  # 20 results per page
-
-    for page in range(1, min(pages_needed + 1, 26)):  # Max 25 pages (500 movies)
-        discovered_ids = discover_popular_movies(page)
-        movie_ids.extend(discovered_ids)
-        print(f"  Page {page}: Found {len(discovered_ids)} movies (total: {len(movie_ids)})")
-        time.sleep(DELAY_BETWEEN_REQUESTS)
-
-        if len(movie_ids) >= 500:
-            break
-
-    # Limit to 500
-    movie_ids = movie_ids[:500]
+    # Limit to 10 for testing
+    movie_ids = movie_ids[:10]
 
     print(f"\n✓ Total movie IDs gathered: {len(movie_ids)}")
 

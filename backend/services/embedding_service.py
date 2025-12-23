@@ -1,22 +1,30 @@
 """
 Embedding service for generating and managing vector embeddings.
-Uses OpenAI's text-embedding-3-small model.
+Uses OpenAI's text-embedding-3-small model with Redis caching.
 """
 
 from openai import OpenAI
 from typing import List
+import hashlib
 import sys
 sys.path.append('..')
 from config import config
+from services.redis_cache import cache_get, cache_set
 
 
 # Initialize OpenAI client
 client = OpenAI(api_key=config.OPENAI_API_KEY)
 
 
+def get_embedding_cache_key(text: str) -> str:
+    """Generate cache key for embedding."""
+    text_hash = hashlib.md5(text.encode()).hexdigest()
+    return f"embedding:{text_hash}"
+
+
 def generate_embedding(text: str) -> List[float]:
     """
-    Generate embedding vector for a single text.
+    Generate embedding vector for a single text (with Redis caching).
 
     Args:
         text: The text to embed
@@ -24,11 +32,23 @@ def generate_embedding(text: str) -> List[float]:
     Returns:
         List of floats representing the embedding vector
     """
+    # Check cache first
+    cache_key = get_embedding_cache_key(text)
+    cached = cache_get(cache_key)
+    if cached is not None:
+        return cached
+
+    # Generate embedding via OpenAI
     response = client.embeddings.create(
         model=config.EMBEDDING_MODEL,
         input=text
     )
-    return response.data[0].embedding
+    embedding = response.data[0].embedding
+
+    # Cache for 24 hours (embeddings don't change)
+    cache_set(cache_key, embedding, ttl=86400)
+
+    return embedding
 
 
 def generate_embeddings_batch(texts: List[str]) -> List[List[float]]:

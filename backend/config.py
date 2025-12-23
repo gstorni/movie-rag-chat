@@ -13,7 +13,8 @@ class Config:
     """Application configuration loaded from environment variables."""
 
     # Database - Load from environment variables only
-    POSTGRES_HOST: str = os.getenv('POSTGRES_HOST', '')
+    # RAG_POSTGRES_HOST overrides POSTGRES_HOST for local development
+    POSTGRES_HOST: str = os.getenv('RAG_POSTGRES_HOST') or os.getenv('POSTGRES_HOST', '')
     POSTGRES_PORT: int = int(os.getenv('POSTGRES_PORT', '5432'))
     POSTGRES_DB: str = os.getenv('POSTGRES_DB', '')
     POSTGRES_USER: str = os.getenv('POSTGRES_USER', '')
@@ -26,6 +27,12 @@ class Config:
 
     # TMDB
     TMDB_API_KEY: str = os.getenv('TMDB_API_KEY', '')
+
+    # Redis
+    REDIS_HOST: str = os.getenv('REDIS_HOST', 'localhost')
+    REDIS_PORT: int = int(os.getenv('REDIS_PORT', '6379'))
+    REDIS_PASSWORD: str = os.getenv('REDIS_PASSWORD', '')
+    REDIS_TLS: bool = os.getenv('REDIS_TLS', 'false').lower() == 'true'
 
     # Vector Search
     EMBEDDING_DIMENSIONS: int = 1536

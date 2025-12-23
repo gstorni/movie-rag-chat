@@ -19,11 +19,19 @@ export function ChatInput({ onSend, disabled = false, placeholder = 'Ask about m
     }
   }, [input]);
 
+  // Auto-focus when component becomes enabled (after response)
+  useEffect(() => {
+    if (!disabled && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [disabled]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (input.trim() && !disabled) {
       onSend(input.trim());
       setInput('');
+      // Focus will be handled by the disabled effect when loading completes
     }
   };
 

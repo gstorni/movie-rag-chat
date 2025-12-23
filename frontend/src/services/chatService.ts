@@ -201,6 +201,30 @@ export interface DetailedStats {
     total_size: string;
   };
   indexes: Array<{ indexname: string; size: string }>;
+  redis_cache?: {
+    available: boolean;
+    status: string;
+    host?: string;
+    cache_stats?: {
+      hits: number;
+      misses: number;
+      total_requests: number;
+      hit_rate_percent: number;
+    };
+    cached_items?: {
+      search_results: number;
+      stats_cached: boolean;
+    };
+    memory?: {
+      used_memory: string;
+      used_memory_peak: string;
+      connected_clients: number;
+    };
+    server?: {
+      version: string;
+      uptime_days: number;
+    };
+  };
 }
 
 /**

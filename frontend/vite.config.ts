@@ -9,7 +9,7 @@ export default defineConfig({
     allowedHosts: ['rag.boxx.ar', 'localhost', '192.168.10.158'],
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://localhost:3001',
         changeOrigin: true
       }
     }

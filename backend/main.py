@@ -58,5 +58,5 @@ if __name__ == "__main__":
         "main:app",
         host=config.API_HOST,
         port=config.API_PORT,
-        reload=True
+        reload=False  # Disabled to prevent high CPU usage
     )

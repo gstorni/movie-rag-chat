@@ -141,7 +141,14 @@ def get_statistics() -> Dict[str, Any]:
 
 
 def get_detailed_statistics() -> Dict[str, Any]:
-    """Get comprehensive database and vector statistics."""
+    """Get comprehensive database and vector statistics (cached in Redis for 1 hour)."""
+    from services.redis_cache import get_cached_stats, cache_stats
+
+    # Check cache first
+    cached = get_cached_stats()
+    if cached is not None:
+        return cached
+
     stats = {}
 
     # Basic movie stats
@@ -335,6 +342,13 @@ def get_detailed_statistics() -> Dict[str, Any]:
             stats['indexes'] = [dict(i) for i in indexes]
     except:
         stats['indexes'] = []
+
+    # Add Redis cache statistics
+    from services.redis_cache import get_redis_stats
+    stats['redis_cache'] = get_redis_stats()
+
+    # Cache the stats for 1 hour
+    cache_stats(stats, ttl=3600)
 
     return stats
 

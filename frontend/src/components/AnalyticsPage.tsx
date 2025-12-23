@@ -229,6 +229,114 @@ export function AnalyticsPage({ onBack }: AnalyticsPageProps) {
           </div>
         </Section>
 
+        {/* Redis Cache Section */}
+        {stats.redis_cache && stats.redis_cache.available && (
+          <Section title="Redis Cache" icon={Zap} color="red">
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Cache Statistics */}
+              <div className="bg-gray-800/50 rounded-xl p-5 border border-gray-700/50">
+                <div className="flex items-center gap-2 mb-4">
+                  <TrendingUp className="w-5 h-5 text-red-400" />
+                  <h4 className="font-medium">Cache Performance</h4>
+                  <span className={`ml-auto px-2 py-0.5 rounded text-xs ${
+                    stats.redis_cache.status === 'connected'
+                      ? 'bg-green-500/20 text-green-400'
+                      : 'bg-red-500/20 text-red-400'
+                  }`}>
+                    {stats.redis_cache.status}
+                  </span>
+                </div>
+                {stats.redis_cache.cache_stats ? (
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 text-sm">Hit Rate</span>
+                      <span className="text-green-400 font-semibold">
+                        {stats.redis_cache.cache_stats.hit_rate_percent.toFixed(2)}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 text-sm">Total Requests</span>
+                      <span className="text-white font-mono">
+                        {formatNumber(stats.redis_cache.cache_stats.total_requests)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 text-sm">Cache Hits</span>
+                      <span className="text-green-400 font-mono">
+                        {formatNumber(stats.redis_cache.cache_stats.hits)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 text-sm">Cache Misses</span>
+                      <span className="text-orange-400 font-mono">
+                        {formatNumber(stats.redis_cache.cache_stats.misses)}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm">No cache statistics available</p>
+                )}
+              </div>
+
+              {/* Memory & Server Info */}
+              <div className="bg-gray-800/50 rounded-xl p-5 border border-gray-700/50">
+                <div className="flex items-center gap-2 mb-4">
+                  <Server className="w-5 h-5 text-red-400" />
+                  <h4 className="font-medium">Redis Server</h4>
+                </div>
+                <div className="space-y-3">
+                  {stats.redis_cache.host && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 text-sm">Host</span>
+                      <span className="text-white font-mono text-sm">
+                        {stats.redis_cache.host}
+                      </span>
+                    </div>
+                  )}
+                  {stats.redis_cache.server && (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400 text-sm">Version</span>
+                        <span className="text-white font-mono text-sm">
+                          {stats.redis_cache.server.version}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400 text-sm">Uptime</span>
+                        <span className="text-white font-mono text-sm">
+                          {stats.redis_cache.server.uptime_days} days
+                        </span>
+                      </div>
+                    </>
+                  )}
+                  {stats.redis_cache.memory && (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400 text-sm">Memory Used</span>
+                        <span className="text-purple-400 font-mono text-sm">
+                          {stats.redis_cache.memory.used_memory}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400 text-sm">Peak Memory</span>
+                        <span className="text-purple-300 font-mono text-sm">
+                          {stats.redis_cache.memory.used_memory_peak}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400 text-sm">Clients</span>
+                        <span className="text-cyan-400 font-mono text-sm">
+                          {stats.redis_cache.memory.connected_clients}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </Section>
+        )}
+
         {/* Vector Database Section */}
         <Section title="Vector Database (pgvector)" icon={Zap} color="blue">
           <div className="grid md:grid-cols-2 gap-6">

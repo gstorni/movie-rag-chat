@@ -36,18 +36,22 @@ def analyze_query_intent(query: str) -> tuple[Dict[str, Any], Dict[str, int]]:
         Tuple of (intent dict, token usage dict)
     """
     system_prompt = """You are a query analyzer for a movie database. Analyze the user's query and return a JSON object with:
-    - "intent": one of ["semantic_search", "structured_query", "hybrid", "general_question"]
-    - "filters": object with any extracted filters like {"year": 1994, "director": "name", "genre": "action", "actor": "name", "min_rating": 8.0}
+    - "intent": one of ["semantic_search", "structured_query", "hybrid"]
+    - "filters": object with any extracted filters like {"year": 1994, "director": "name", "genre": "action", "actor": "name", "min_rating": 8.0, "title": "movie name"}
     - "keywords": array of important keywords for search
     - "needs_statistics": boolean if they're asking for stats/counts
 
     Examples:
     - "movies about space travel" -> {"intent": "semantic_search", "filters": {}, "keywords": ["space", "travel"]}
+    - "tell me about Schindler's List" -> {"intent": "hybrid", "filters": {"title": "Schindler's List"}, "keywords": ["Schindler's List"]}
+    - "what is the plot of The Godfather" -> {"intent": "hybrid", "filters": {"title": "The Godfather"}, "keywords": ["Godfather", "plot"]}
     - "Nolan movies" -> {"intent": "structured_query", "filters": {"director": "Nolan"}, "keywords": ["Nolan"]}
     - "movies with Tom Hanks" -> {"intent": "structured_query", "filters": {"actor": "Tom Hanks"}, "keywords": ["Tom Hanks"]}
     - "Leonardo DiCaprio sci-fi movies" -> {"intent": "hybrid", "filters": {"actor": "Leonardo DiCaprio", "genre": "sci-fi"}, "keywords": ["DiCaprio", "sci-fi"]}
     - "best sci-fi movies from the 90s" -> {"intent": "hybrid", "filters": {"genre": "sci-fi", "year_range": [1990, 1999]}, "keywords": ["sci-fi", "90s"]}
-    - "how many movies are in the database" -> {"intent": "general_question", "filters": {}, "keywords": [], "needs_statistics": true}
+    - "how many movies are in the database" -> {"intent": "hybrid", "filters": {}, "keywords": [], "needs_statistics": true}
+
+    IMPORTANT: Always use "hybrid", "semantic_search", or "structured_query" - NEVER use "general_question".
 
     Return ONLY valid JSON, no markdown or explanation."""
 
@@ -99,6 +103,10 @@ def gather_context(query: str, intent_analysis: Dict[str, Any]) -> Dict[str, Any
 
     # Do structured queries based on filters
     if intent in ["structured_query", "hybrid"]:
+        if "title" in filters:
+            # Search by title
+            title_results = search_movies_keyword(filters["title"])
+            context["sql_results"].extend(title_results)
         if "director" in filters:
             context["sql_results"].extend(get_movies_by_director(filters["director"]))
         if "year" in filters:
@@ -112,7 +120,7 @@ def gather_context(query: str, intent_analysis: Dict[str, Any]) -> Dict[str, Any
 
         # Keyword search as fallback
         keywords = intent_analysis.get("keywords", [])
-        for keyword in keywords[:2]:  # Limit to first 2 keywords
+        for keyword in keywords[:3]:  # Limit to first 3 keywords
             keyword_results = search_movies_keyword(keyword)
             context["sql_results"].extend(keyword_results)
 
@@ -196,15 +204,22 @@ def generate_response(query: str, context_str: str, conversation_history: List[D
     Returns:
         Tuple of (response string, token usage dict)
     """
-    system_prompt = """You are a helpful movie database assistant. You have access to a database of movies with plot summaries and reviews.
+    system_prompt = """You are a movie database assistant. You can ONLY discuss movies that are provided in the context below.
 
-Use the provided context to answer questions about movies. When discussing movies:
-- Cite specific movies from the context
-- Mention relevant details like year, director, rating when helpful
-- If the context doesn't contain enough information, say so honestly
-- Be conversational and engaging
+CRITICAL RULES:
+1. NEVER use your general knowledge about movies
+2. ONLY discuss movies that appear in the provided context
+3. If the context shows "No relevant information found in the database", respond: "I don't have information about that in my database."
+4. DO NOT make up information or use external knowledge
+5. If the context contains movie results, use them to answer the question
 
-If asked about movies not in the context, be honest that you can only discuss movies in the database."""
+When answering:
+- Only cite movies from the context
+- Include details like year, director, rating, actors, and plot when available
+- Be conversational but stick strictly to database information
+- Present the movies in a helpful, organized way
+- DO NOT add closing remarks like "let me know", "feel free to ask", or "if you have questions"
+- End your response naturally after providing the information"""
 
     messages = [{"role": "system", "content": system_prompt}]
 

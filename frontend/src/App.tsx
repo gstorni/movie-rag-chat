@@ -71,19 +71,19 @@ function App() {
     setSearchPhase('idle');
     // Don't clear lastResponse - keep showing previous results until new ones arrive
 
+    // Build conversation history BEFORE adding new message
+    const history: Message[] = messages.map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
+
     // Add user message
     const userMessage: ChatEntry = { role: 'user', content };
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
 
     try {
-      // Build conversation history for context
-      const history: Message[] = messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
-
-      // Send to API with phase callbacks
+      // Send to API with phase callbacks (history includes all previous messages)
       const response = await sendMessageWithPhases(content, history, (phase) => {
         setSearchPhase(phase);
       });
